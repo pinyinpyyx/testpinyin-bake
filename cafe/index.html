@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拼音獵人喫茶店 Pinyin Hunter Cafe - 跨遊戲金幣共用整合版</title>
+    <style>
+        :root {
+            --bg-color: #FFF9F2;
+            --primary-pink: #FF8BA7;
+            --primary-yellow: #FFD166;
+            --accent-green: #06D6A0;
+            --wood-color: #E7C169;
+            --dark-wood: #B38036;
+            --text-dark: #4A3E3D;
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#FFE5EC 15%, transparent 16%), radial-gradient(#E8FCCF 15%, transparent 16%);
+            background-size: 40px 40px;
+            margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none; color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* 頂部資訊列：自適應換行與手機佈局 */
+        #game-header {
+            width: 100%; max-width: 950px; background: white;
+            border: 4px solid var(--primary-pink); border-radius: 20px;
+            padding: 10px 15px; display: flex; flex-wrap: wrap; justify-content: space-between;
+            align-items: center; gap: 8px; box-shadow: 0 8px 15px rgba(255, 139, 167, 0.25);
+            margin-bottom: 15px;
+        }
+
+        .header-status-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .header-btn-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .status-badge {
+            font-size: 1rem; font-weight: bold; background: #FFF0F5;
+            padding: 6px 12px; border-radius: 50px; border: 2px solid var(--primary-pink);
+            display: flex; align-items: center; gap: 4px; white-space: nowrap;
+        }
+
+        /* 顧客舞台：手機寬度彈性伸縮 */
+        #customer-stage {
+            width: 100%; max-width: 950px; min-height: 220px;
+            display: flex; justify-content: space-around; align-items: flex-end;
+            margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.65);
+            border-radius: 25px; border: 3px dashed #FFB7B2;
+            overflow-x: auto;
+        }
+
+        .customer-card {
+            display: flex; flex-direction: column; align-items: center;
+            position: relative; transition: transform 0.3s; flex-shrink: 0; margin: 0 5px;
+        }
+
+        .thought-bubble {
+            background: white; border: 3px solid #4A3E3D; border-radius: 20px;
+            padding: 8px 12px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 10px; display: flex; flex-direction: column; align-items: center;
+            animation: bounce 2s infinite ease-in-out; min-width: 150px;
+        }
+
+        .thought-bubble::after {
+            content: ''; position: absolute; bottom: -12px; left: 50%;
+            transform: translateX(-50%); border-width: 12px 10px 0;
+            border-style: solid; border-color: white transparent; display: block; width: 0;
+        }
+
+        .thought-bubble::before {
+            content: ''; position: absolute; bottom: -16px; left: 50%;
+            transform: translateX(-50%); border-width: 15px 12px 0;
+            border-style: solid; border-color: #4A3E3D transparent; display: block; width: 0;
+        }
+
+        .target-hanzi { font-size: 1.8rem; font-weight: 900; color: #D81B60; margin-bottom: 2px; }
+
+        .recipe-chips {
+            display: flex; gap: 4px; margin-top: 4px; background: #FFF3E0;
+            padding: 4px 8px; border-radius: 15px; border: 1.5px solid #FFE0B2; flex-wrap: wrap; justify-content: center;
+        }
+
+        .recipe-chip {
+            font-size: 0.85rem; background: white; padding: 2px 6px; border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center;
+            gap: 2px; font-weight: bold;
+        }
+
+        .animal-avatar { font-size: 4.2rem; text-align: center; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.15)); }
+
+        /* 廚房主要工作區：響應式 Grid 格局 */
+        #kitchen-container {
+            width: 100%; max-width: 950px; background: var(--wood-color);
+            border-radius: 25px; border-bottom: 12px solid var(--dark-wood);
+            padding: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+            display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px;
+        }
+
+        .section-title { font-size: 1.1rem; font-weight: bold; color: white; margin: 0 0 10px 0; text-align: center; }
+
+        .ingredients-board { background: rgba(255, 255, 255, 0.45); border-radius: 18px; padding: 12px; }
+
+        .ingredient-group-title { font-weight: bold; font-size: 0.95rem; color: #5D4037; margin: 6px 0 4px 0; }
+
+        .ingredient-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+        .btn-ingredient {
+            background: white; border: 2.5px solid #D7CCC8; border-radius: 12px;
+            padding: 6px 10px; cursor: pointer; display: flex; align-items: center;
+            gap: 4px; font-size: 0.85rem; font-weight: bold; box-shadow: 0 3px 0 #BCAAA4;
+            transition: all 0.1s;
+        }
+        .btn-ingredient:active { transform: translateY(2px); box-shadow: 0 1px 0 #BCAAA4; }
+
+        .bag-white { background: #FFFFFF !important; border-color: #B0BEC5 !important; }
+        .bag-gold { background: #FFF8E1 !important; border-color: #FFB300 !important; color: #5D4037 !important; }
+
+        .appliance-board { background: rgba(255, 255, 255, 0.45); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+        #mixing-bowl-zone { background: white; border-radius: 16px; padding: 10px; text-align: center; border: 2.5px solid #FFE082; }
+
+        .craft-slots { display: flex; justify-content: center; gap: 8px; margin: 8px 0; }
+
+        #bake-hint-box {
+            display: none; background: #FFEBEE; border: 2px dashed #EF5350;
+            border-radius: 10px; padding: 6px 8px; margin-top: 6px;
+            font-size: 0.8rem; color: #C62828; text-align: left; line-height: 1.3;
+        }
+
+        .slot {
+            width: 65px; height: 55px; background: #FFF8E1; border: 2px dashed #FFCA28;
+            border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: bold;
+        }
+
+        .slot-val { font-size: 1rem; color: #E65100; }
+
+        .oven-and-plate { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+        .ovens-container { display: flex; gap: 8px; flex: 1; justify-content: center; min-width: 140px; }
+
+        .oven-box {
+            flex: 1; background: #37474F; border: 4px solid #263238; border-radius: 15px;
+            padding: 8px; color: white; text-align: center; position: relative; min-height: 95px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        .oven-box.baking { background: #E65100; animation: shake 0.4s infinite; }
+        .oven-door-window { width: 85%; height: 28px; background: #1C313A; border-radius: 6px; margin-bottom: 4px; border: 2px solid #455A64; display: flex; align-items: center; justify-content: center; }
+
+        .plate-box {
+            width: 90px; height: 95px; background: white; border: 3px solid #E0E0E0;
+            border-radius: 15px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; position: relative; cursor: grab; flex-shrink: 0;
+            touch-action: none;
+        }
+
+        .trash-bin {
+            width: 70px; height: 95px; background: #78909C; border: 3px solid #455A64;
+            border-radius: 15px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: white; font-weight: bold; font-size: 0.8rem; cursor: pointer; flex-shrink: 0;
+        }
+
+        .btn-action {
+            background: var(--accent-green); color: white; border: none; border-radius: 10px;
+            padding: 6px 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #00A86B;
+            white-space: nowrap;
+        }
+        .btn-action:active { transform: translateY(2px); box-shadow: 0 1px 0 #00A86B; }
+
+        /* 拼音選擇彈窗：適應手機底部 */
+        #pinyin-modal {
+            display: none; position: fixed; bottom: 15px; left: 50%;
+            transform: translateX(-50%); width: 95%; max-width: 480px;
+            background: rgba(255, 255, 255, 0.98); border-radius: 20px; padding: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: 3.5px solid var(--primary-pink);
+            z-index: 200; backdrop-filter: blur(8px);
+        }
+
+        .modal-card { position: relative; text-align: center; }
+        .options-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+
+        .btn-opt { background: #FFF0F5; border: 2.5px solid #FFB7B2; border-radius: 12px; padding: 10px 6px; font-size: 1.1rem; font-weight: bold; color: #D81B60; cursor: pointer; box-shadow: 0 3px 0 #FF9AA2; }
+        .btn-opt:active { transform: translateY(2px); box-shadow: 0 1px 0 #FF9AA2; }
+
+        .btn-close-modal {
+            position: absolute; top: -10px; right: -5px; background: #FF5252; color: white;
+            border: none; border-radius: 50%; width: 26px; height: 26px; font-weight: bold;
+            cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 全螢幕遮罩層（主選單與商店） */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 249, 242, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; padding: 15px; }
+        .start-card { background: white; border: 4px solid var(--primary-pink); border-radius: 25px; padding: 20px; text-align: center; max-width: 480px; width: 100%; }
+        
+        .difficulty-options { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .btn-diff { padding: 12px 16px; font-size: 1rem; font-weight: bold; border-radius: 14px; border: 2.5px solid; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 3px 0 rgba(0,0,0,0.1); }
+        .btn-diff-easy { background: #E8F5E9; border-color: #81C784; color: #2E7D32; }
+        .btn-diff-medium { background: #FFF3E0; border-color: #FFB74D; color: #E65100; }
+        .btn-diff-hard { background: #FFEBEE; border-color: #E57373; color: #C62828; }
+
+        .shop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 250; backdrop-filter: blur(4px); justify-content: center; align-items: center; padding: 15px; }
+        .shop-card { background: white; border-radius: 20px; padding: 20px; width: 100%; max-width: 450px; border: 4px solid var(--primary-yellow); text-align: center; }
+        .shop-item { background: #FFF8E1; border: 2px dashed #FFCA28; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* 手機觸控拖曳浮動視覺效果 */
+        .touch-drag-clone {
+            position: fixed; pointer-events: none; z-index: 999; opacity: 0.85; transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        /* 📱 手機螢幕（寬度低於 768px）自適應切換 */
+        @media (max-width: 768px) {
+            #kitchen-container { grid-template-columns: 1fr; gap: 12px; }
+            #game-header { padding: 8px 12px; border-radius: 15px; }
+            .status-badge { font-size: 0.85rem; padding: 4px 8px; }
+            .btn-action { font-size: 0.8rem; padding: 5px 10px; }
+            .thought-bubble { min-width: 120px; padding: 6px 10px; }
+            .target-hanzi { font-size: 1.5rem; }
+            .animal-avatar { font-size: 3.5rem; }
+            .plate-box, .trash-bin { height: 85px; }
+            .oven-box { min-height: 85px; }
+        }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes shake { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, 0px); } 100% { transform: translate(1px, 1px); } }
+        .drag-over { transform: scale(1.05); filter: drop-shadow(0 0 8px var(--accent-green)); }
+    </style>
+</head>
+<body>
+
+    <div id="game-header">
+        <div class="header-status-group">
+            <div class="status-badge">⭐ <span id="lbl-level">1</span> (<span id="lbl-diff-name">初級</span>)</div>
+            <div class="status-badge">🪙 <span id="lbl-coins">0</span></div>
+            <div class="status-badge">⏳ <span id="lbl-time">60</span>s</div>
+        </div>
+        <div class="header-btn-group">
+            <button class="btn-action" style="background:#FFB74D; box-shadow:0 3px 0 #F57C00;" onclick="openShop()">🏪 商店</button>
+            <button class="btn-action" id="btn-quit" style="background:#FF5252; box-shadow:0 3px 0 #D32F2F;" onclick="openQuitConfirm()">🚪 退出</button>
+        </div>
+    </div>
+
+    <div id="customer-stage"></div>
+
+    <div id="kitchen-container">
+        <div class="ingredients-board">
+            <h3 class="section-title">🛒 選擇食材與拼音</h3>
+            
+            <div class="ingredient-group-title">🌾 1. 基底食材 (聲母)</div>
+            <div class="ingredient-buttons">
+                <button class="btn-ingredient bag-white" onclick="openSelector('麵粉', 'sh')"><span>⚪</span> 麵粉</button>
+                <button class="btn-ingredient bag-gold" onclick="openSelector('小麥粉', 'sh')"><span>🟡</span> 小麥粉</button>
+            </div>
+
+            <div class="ingredient-group-title">🧴 2. 美味醬料 (韻母)</div>
+            <div class="ingredient-buttons">
+                <button class="btn-ingredient" onclick="openSelector('草莓醬', 'ym')"><span>🧴🍓</span> 草莓醬</button>
+                <button class="btn-ingredient" onclick="openSelector('巧克力醬', 'ym')"><span>🧴🍫</span> 巧克力</button>
+                <button class="btn-ingredient" onclick="openSelector('檸檬醬', 'ym')"><span>🧴🍋</span> 檸檬醬</button>
+                <button class="btn-ingredient" onclick="openSelector('葡萄醬', 'ym')"><span>🧴🍇</span> 葡萄醬</button>
+            </div>
+
+            <div class="ingredient-group-title">🧁 3. 鮮奶油 (聲調)</div>
+            <div class="ingredient-buttons">
+                <button class="btn-ingredient" onclick="openSelector('草莓奶油', 'sd')"><span>🧁🍓</span> 草莓</button>
+                <button class="btn-ingredient" onclick="openSelector('巧克力奶油', 'sd')"><span>🧁🍫</span> 巧克力</button>
+                <button class="btn-ingredient" onclick="openSelector('香草奶油', 'sd')"><span>🧁🍦</span> 香草</button>
+                <button class="btn-ingredient" onclick="openSelector('檸檬奶油', 'sd')"><span>🧁🍋</span> 檸檬</button>
+            </div>
+        </div>
+
+        <div class="appliance-board">
+            <h3 class="section-title">🥣 攪拌與烘焙設備</h3>
+            
+            <div id="mixing-bowl-zone">
+                <div style="font-weight:bold; color:#5D4037; font-size:0.9rem;">攪拌碗配料區</div>
+                <div class="craft-slots">
+                    <div class="slot">基底<span class="slot-val" id="slot-sh">-</span></div>
+                    <div class="slot">醬料<span class="slot-val" id="slot-ym">-</span></div>
+                    <div class="slot">奶油<span class="slot-val" id="slot-sd">-</span></div>
+                </div>
+                <div style="font-size:0.8rem; color:#8D6E63; margin-bottom: 4px;">
+                    配料: <span id="lbl-craft-ingredient" style="font-weight:bold;">無</span>
+                </div>
+                <button class="btn-action" style="background:#E57373;" onclick="clearBowl()">清空配料</button>
+                <div id="bake-hint-box"></div>
+            </div>
+
+            <div class="oven-and-plate">
+                <div class="ovens-container" id="ovens-list"></div>
+
+                <div class="plate-box" id="plate-device" draggable="true" ondragstart="onCakeDragStart(event)">
+                    <div style="font-size:0.65rem; color:#9E9E9E; position:absolute; top:2px;">出爐盤</div>
+                    <div id="plate-content" style="margin-top:6px;"><span style="font-size:1.8rem; opacity:0.3;">🎂</span></div>
+                </div>
+
+                <div class="trash-bin" id="trash-bin" ondragover="onTrashOver(event)" ondragleave="onTrashLeave(event)" ondrop="onTrashDrop(event)">
+                    <span style="font-size: 1.4rem;">🗑️</span>
+                    <span>垃圾桶</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商店 Modal -->
+    <div class="shop-modal" id="shop-modal">
+        <div class="shop-card">
+            <h3 style="color:#D81B60; margin-top:0;">🏪 喫茶店設備商店</h3>
+            <div style="margin-bottom:12px; font-weight:bold; color:#E65100; font-size:0.95rem;">目前金幣: 🪙 <span id="shop-coins">0</span></div>
+            
+            <div class="shop-item">
+                <div style="text-align:left;">
+                    <div style="font-weight:bold; font-size:0.9rem;">🔥 升級烤箱加熱速度</div>
+                    <div style="font-size:0.75rem; color:#666;" id="shop-oven-lv-text">等級 0 (時間: 4秒)</div>
+                </div>
+                <button class="btn-action" id="btn-upgrade-oven" onclick="upgradeOvenSpeed()">升級 (<span id="cost-oven-lv">100</span>金)</button>
+            </div>
+
+            <div class="shop-item">
+                <div style="text-align:left;">
+                    <div style="font-weight:bold; font-size:0.9rem;">✨ 購買新烤箱 (增加槽位)</div>
+                    <div style="font-size:0.75rem; color:#666;" id="shop-oven-count-text">目前烤箱: 1個</div>
+                </div>
+                <button class="btn-action" id="btn-buy-oven" onclick="buyNewOven()">購買 (<span id="cost-new-oven">1000</span>金)</button>
+            </div>
+
+            <button class="btn-action" style="background:#B0BEC5; margin-top:8px;" onclick="closeShop()">關閉商店</button>
+        </div>
+    </div>
+
+    <!-- 退出確認 Modal -->
+    <div class="shop-modal" id="quit-modal">
+        <div class="shop-card" style="max-width: 350px;">
+            <h3 style="color:#D81B60; margin-top:0;">🚪 確定退出遊戲？</h3>
+            <p style="color:#666; font-size:0.85rem; margin-bottom:15px;">退出後金幣進度將會儲存並返回主大廳。</p>
+            <div style="display:flex; justify-content:center; gap:10px;">
+                <button class="btn-action" style="background:#FF5252; box-shadow:0 3px 0 #D32F2F;" onclick="confirmQuit()">確定退出</button>
+                <button class="btn-action" style="background:#B0BEC5; box-shadow:0 3px 0 #78909C;" onclick="closeQuitConfirm()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 拼音選擇器 Modal -->
+    <div id="pinyin-modal">
+        <div class="modal-card">
+            <button class="btn-close-modal" onclick="closeSelector()">✕</button>
+            <h4 id="modal-title" style="color:#D81B60; margin:0 0 4px 0; font-size:1rem;">選擇拼音部件</h4>
+            <div style="font-size:0.75rem; color:#757575;">點擊將部件加入攪拌碗</div>
+            <div class="options-grid" id="modal-options"></div>
+        </div>
+    </div>
+
+    <!-- 難度選擇 overlay -->
+    <div class="overlay" id="start-overlay">
+        <div class="start-card">
+            <h2 style="color:#D81B60; font-size:1.8rem; margin-bottom:4px; margin-top:0;">🧁 拼音獵人喫茶店 🧁</h2>
+            <p style="color:#666; font-size:0.85rem; margin-bottom:15px;">歡迎！請選擇營業難度開始接待獵人顧客：</p>
+
+            <div class="difficulty-options">
+                <button class="btn-diff btn-diff-easy" onclick="selectDifficulty('easy')">
+                    <span>🌱 初級難度</span>
+                    <span style="font-size:0.75rem; font-weight:normal;">基礎音節 (b-h, a-ü) • 60s/人</span>
+                </button>
+                <button class="btn-diff btn-diff-medium" onclick="selectDifficulty('medium')">
+                    <span>⭐ 中級難度</span>
+                    <span style="font-size:0.75rem; font-weight:normal;">複韻母 • 50s/人</span>
+                </button>
+                <button class="btn-diff btn-diff-hard" onclick="selectDifficulty('hard')">
+                    <span>🔥 高級難度</span>
+                    <span style="font-size:0.75rem; font-weight:normal;">全拼音字庫 • 40s/人</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // 跨遊戲存檔機制 (pinyin_hunter_save)
+        // ----------------------------------------------------
+        // ----------------------------------------------------
+        // 跨遊戲共用金幣核心模組 (與射擊遊戲同步)
+        // ----------------------------------------------------
+        const COIN_KEY = "pinyin_hunter_shared_coins";
+        const GAME1_PROGRESS_KEY = "pinyin-hunter-visitor-progress-v1";
+
+        function readSharedCoins() {
+            const raw = localStorage.getItem(COIN_KEY);
+            return raw === null ? null : Math.max(0, Number(raw) || 0);
+        }
+
+        function writeSharedCoins(value) {
+            localStorage.setItem(COIN_KEY, String(Math.max(0, value)));
+        }
+
+        // 初始化：若共用金幣尚未建立，從遊戲一的現有進度中繼承
+        function initSharedCoins() {
+            if (readSharedCoins() === null) {
+                let initial = 0;
+                try {
+                    const progress = JSON.parse(localStorage.getItem(GAME1_PROGRESS_KEY));
+                    initial = Number(progress && progress.coins) || 0;
+                } catch (e) {}
+                writeSharedCoins(initial);
+            }
+            coins = readSharedCoins() ?? 0;
+        }
+
+        // 每次增減金幣均直接讀寫共用金幣鍵
+        function changeCoins(delta) {
+            const current = readSharedCoins() ?? 0;
+            coins = Math.max(0, current + delta);
+            writeSharedCoins(coins);
+            updateCoinsUI();
+        }        function normalizeYm(ym) {
+            if (!ym) return "";
+            if (ym === "uei") return "ui";
+            if (ym === "iou") return "iu";
+            if (ym === "uen") return "un";
+            return ym;
+        }
+
+        function parsePinyinStandard(rawPinyin) {
+            let py = rawPinyin.trim().toLowerCase().replace(/v/g, 'ü');
+            let tone = "";
+            let base = "";
+
+            for(let char of py) {
+                if("1234".includes(char)) tone = char;
+                else base += char;
+            }
+
+            let toneSymbolMap = { "1": "¯", "2": "ˊ", "3": "ˇ", "4": "ˋ" };
+            let sdSymbol = toneSymbolMap[tone] || "";
+
+            let initial = "";
+            let final = base;
+
+            if (base.startsWith('w')) {
+                initial = "";
+                if (base === 'wu') final = 'u';
+                else if (base === 'wen') final = 'un';
+                else if (base === 'weng') final = 'ueng';
+                else final = 'u' + base.slice(1);
+            } 
+            else if (base.startsWith('y')) {
+                initial = "";
+                if (base === 'yi') final = 'i';
+                else if (base === 'yin') final = 'in';
+                else if (base === 'ying') final = 'ing';
+                else if (base === 'yu') final = 'ü';
+                else if (base.startsWith('yuan')) final = 'üan' + base.slice(4);
+                else if (base.startsWith('yue')) final = 'üe' + base.slice(3);
+                else if (base.startsWith('yun')) final = 'ün' + base.slice(3);
+                else final = 'i' + base.slice(1);
+            } 
+            else {
+                const shList = ["zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "r", "z", "c", "s"];
+                for (let s of shList) {
+                    if (base.startsWith(s)) {
+                        initial = s;
+                        final = base.slice(s.length);
+                        break;
+                    }
+                }
+                if (['j', 'q', 'x'].includes(initial) && final.startsWith('u')) {
+                    if (final === 'u') final = 'ü';
+                    else if (final === 'ue') final = 'üe';
+                    else if (final === 'un') final = 'ün';
+                    else if (final === 'uan') final = 'üan';
+                }
+            }
+
+            return { sh: initial, ym: normalizeYm(final), sd: sdSymbol };
+        }
+
+        const wordData = {
+    easy: "一 yi1, 二 er4, 三 san1, 四 si4, 五 wu3, 六 liu4, 七 qi1, 八 ba1, 九 jiu3, 十 shi2, 口 kou3, 人 ren2, 大 da4, 小 xiao3, 上 shang4, 下 xia4, 山 shan1, 水 shui3, 火 huo3, 木 mu4, 日 ri4, 月 yue4, 目 mu4, 手 shou3, 足 zu2, 心 xin1, 方 fang1, 田 tian2, 石 shi2, 禾 he2, 犬 quan3, 牛 niu2, 羊 yang2, 馬 ma3, 魚 yu2, 鳥 niao3, 門 men2, 耳 er3, 牙 ya2, 不 bu4, 中 zhong1, 天 tian1, 少 shao3, 工 gong1, 子 zi3, 立 li4, 出 chu1, 入 ru4, 去 qu4, 來 lai2, 好 hao3, 很 hen3, 是 shi4, 有 you3, 走 zou3, 跑 pao3, 飛 fei1, 花 hua1, 草 cao3, 果 guo3, 菜 cai4, 林 lin2, 春 chun1, 夏 xia4, 秋 qiu1, 冬 dong1, 雨 yu3, 雪 xue3, 風 feng1, 雲 yun2, 電 dian4, 船 chuan2, 車 che1, 家 jia1, 學 xue2, 字 zi4, 書 shu1, 本 ben3, 紙 zhi3, 刀 dao1, 白 bai2, 黑 hei1, 紅 hong2, 黃 huang2, 青 qing1, 藍 lan2, 色 se4, 紫 zi3, 眼 yan3, 鼻 bi2, 腳 jiao3, 身 shen1, 頭 tou2, 面 mian4, 嘴 zui3, 包 bao1, 得 de2, 每 mei3, 比 bi3, 那 na4, 女 nv3, 綠 lv4",
+
+    medium: "貓 mao1, 狗 gou3, 兔 tu4, 鴨 ya1, 鵝 e2, 雞 ji1, 蛇 she2, 龍 long2, 熊 xiong2, 猴 hou2, 象 xiang4, 獅 shi1, 虎 hu3, 豬 zhu1, 蝴 hu2, 蝶 die2, 蜜 mi4, 蜂 feng1, 蛙 wa1, 螞 ma3, 蟻 yi3, 橙 cheng2, 桃 tao2, 梨 li2, 蘋 ping2, 瓜 gua1, 豆 dou4, 米 mi3, 麥 mai4, 飯 fan4, 湯 tang1, 糖 tang2, 蛋 dan4, 餅 bing3, 麵 mian4, 奶 nai3, 茶 cha2, 鍋 guo1, 碗 wan3, 盤 pan2, 杯 bei1, 瓶 ping2, 刷 shua1, 洗 xi3, 衣 yi1, 褲 ku4, 襪 wa4, 鞋 xie2, 帽 mao4, 傘 san3, 球 qiu2, 跳 tiao4, 唱 chang4, 舞 wu3, 畫 hua4, 笑 xiao4, 哭 ku1, 叫 jiao4, 說 shuo1, 話 hua4, 讀 du2, 寫 xie3, 算 suan4, 數 shu4, 愛 ai4, 喜 xi3, 怕 pa4, 跟 gen1, 站 zhan4, 坐 zuo4, 躺 tang3, 睡 shui4, 醒 xing3, 吃 chi1, 喝 he1, 聽 ting1, 看 kan4, 見 jian4, 用 yong4, 給 gei3, 拿 na2, 放 fang4, 找 zhao3, 幫 bang1, 等 deng3, 停 ting2, 慢 man4, 遠 yuan3, 近 jin4, 高 gao1, 低 di1, 長 chang2, 短 duan3, 多 duo1, 舊 jiu4, 老 lao3, 年 nian2, 早 zao3, 晚 wan3, 今 jin1, 女 nv3, 綠 lv4, 呂 lv3",
+
+
+    hard: "快 kuai4, 樂 le4, 訊 xun4, 穿 chuan1, 軟 ruan3, 換 huan4, 歡 huan1, 關 guan1, 館 guan3, 官 guan1, 搬 ban1, 拳 quan2, 全 quan2, 完 wan2, 玩 wan2, 元 yuan2, 願 yuan4, 冠 guan4, 寬 kuan1, 塊 kuai4, 筷 kuai4, 帥 shuai4, 摔 shuai1, 甩 shuai3, 雙 shuang1, 爽 shuang3, 讓 rang4, 強 qiang2, 響 xiang3, 向 xiang4, 像 xiang4, 想 xiang3, 香 xiang1, 兩 liang3, 亮 liang4, 量 liang2, 樣 yang4, 雄 xiong2, 窮 qiong2, 永 yong3, 勇 yong3, 兒 er2, 弟 di4, 姐 jie3, 妹 mei4, 哥 ge1, 媽 ma1, 爸 ba4, 爺 ye2, 叔 shu1, 伯 bo2, 舅 jiu4, 姨 yi2, 朋 peng2, 友 you3, 同 tong2, 師 shi1, 生 sheng1, 班 ban1, 級 ji2, 校 xiao4, 課 ke4, 考 kao3, 試 shi4, 分 fen1, 績 ji4, 獎 jiang3, 獲 huo4, 勝 sheng4, 敗 bai4, 贏 ying2, 輸 shu1, 戰 zhan4, 游 you2, 泳 yong3, 搶 qiang3, 繪 hui4, 尺 chi3, 規 gui1, 角 jiao3, 圓 yuan2, 形 xing2, 體 ti3, 線 xian4, 深 shen1, 淺 qian3, 變 bian4, 團 tuan2, 圈 quan1, 環 huan2, 漂 piao1, 漲 zhang3, 滿 man3, 準 zhun3, 碰 peng4, 種 zhong3, 蟬 chan2, 曬 shai4, 懷 huai2, 蝸 wo1, 女 nv3, 綠 lv4, 呂 lv3"
+};
+
+const flourOptions = ["麵粉", "小麥粉"];
+const sauceOptions = ["草莓醬", "巧克力醬", "檸檬醬", "葡萄醬"];
+const creamOptions = ["草莓奶油", "巧克力奶油", "香草奶油", "檸檬奶油"];
+
+const rawWordBank = Object.entries(wordData)
+    .flatMap(([diff, text]) =>
+        text.split(",").map(s => s.trim().split(/\s+/)).map(([word, py]) => ({ word, py, diff }))
+    )
+    .map((item, i) => ({
+        ...item,
+        ing: flourOptions[i % 2],
+        sauce: sauceOptions[Math.floor(i / 2) % 4],
+        cream: creamOptions[Math.floor(i / 8) % 4]
+    }));
+
+        const wordBank = rawWordBank.map(item => {
+            let parsed = parsePinyinStandard(item.py);
+            return { ...item, sh: parsed.sh, ym: parsed.ym, sd: parsed.sd };
+        });
+
+        const allPinyin = {
+            sh: ["b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "zh", "ch", "sh", "r", "z", "c", "s", ""],
+           ym: ["a", "o", "e", "i", "u", "ü", "ai", "ei", "ui", "ao", "ou", "iu", "ie", "üe", "er", "an", "en", "in", "un", "ün", "ang", "eng", "ing", "ong", "ia", "ua", "uo", "iao", "uai", "uan", "ian", "üan", "iang", "uang", "iong"],
+            sd: ["¯", "ˊ", "ˇ", "ˋ"]
+        };
+
+        const animals = [{ icon: "🐻" }, { icon: "🐰" }, { icon: "🐶" }, { icon: "🐱" }];
+        const symbolIcons = {
+            "麵粉": "⚪ 麵粉", "小麥粉": "🟡 小麥粉",
+            "草莓醬": "🧴🍓", "巧克力醬": "🧴🍫", "檸檬醬": "🧴🍋", "葡萄醬": "🧴🍇",
+            "草莓奶油": "🧁🍓", "巧克力奶油": "🧁🍫", "香草奶油": "🧁🍦", "檸檬奶油": "🧁🍋"
+        };
+
+        let gameDifficulty = "easy";
+        let level = 1, coins = 0, timeLeft = 60, timer = null, activeOrders = [];
+        let currentCraft = { ingredient: null, sauce: null, cream: null, sh: null, ym: null, sd: null };
+        let currentBakedCake = null, activeContext = { ingredient: "", type: "" };
+
+        let ovenLevel = 0;
+        let ovenCount = 1;
+        let ovenStates = [
+            { isBaking: false },
+            { isBaking: false },
+            { isBaking: false }
+        ];
+
+        const ovenUpgradeCosts = [100, 200, 300];
+        const newOvenCosts = [1000, 2000];
+
+            // 頁面載入時讀取共用金幣
+     window.onload = function() {
+         initSharedCoins();
+         updateCoinsUI();
+     };
+
+     window.addEventListener('storage', function(e) {
+         if (e.key === COIN_KEY) {
+             coins = readSharedCoins() ?? 0;
+             updateCoinsUI();
+         }
+     });
+        function selectDifficulty(diff) {
+            gameDifficulty = diff;
+            const diffMap = { easy: "初級", medium: "中級", hard: "高級" };
+            document.getElementById('lbl-diff-name').innerText = diffMap[diff];
+            document.getElementById('start-overlay').style.display = "none";
+            level = 1;
+            initLevel();
+        }
+
+        function openQuitConfirm() { document.getElementById('quit-modal').style.display = "flex"; }
+        function closeQuitConfirm() { document.getElementById('quit-modal').style.display = "none"; }
+
+        function confirmQuit() {
+            closeQuitConfirm();
+            if(timer) clearInterval(timer);
+            closeShop(); closeSelector(); clearBowl();
+            currentBakedCake = null; updatePlateUI();
+            
+            window.location.href = "../index.html";
+        }
+
+        function initLevel() {
+            currentCraft = { ingredient: null, sauce: null, cream: null, sh: null, ym: null, sd: null };
+            currentBakedCake = null;
+            document.getElementById('bake-hint-box').style.display = "none";
+            renderOvensUI(); updatePlateUI(); updateCraftUI();
+            document.getElementById('lbl-level').innerText = level;
+            updateCoinsUI(); generateOrders(); startTimer();
+        }
+
+        function updateCoinsUI() {
+            const coinLbl = document.getElementById('lbl-coins');
+            if (coinLbl) coinLbl.innerText = coins;
+            const shopCoinLbl = document.getElementById('shop-coins');
+            if (shopCoinLbl) shopCoinLbl.innerText = coins;
+        }
+
+            function addCoins(amount) {
+         changeCoins(amount);
+     }
+
+     function deductCoins(amount) {
+         changeCoins(-amount);
+     }
+
+        function startTimer() {
+            if(timer) clearInterval(timer);
+            let timePerOrder = gameDifficulty === "easy" ? 60 : (gameDifficulty === "medium" ? 50 : 40);
+            timeLeft = timePerOrder;
+            document.getElementById('lbl-time').innerText = timeLeft;
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('lbl-time').innerText = timeLeft;
+                if(timeLeft <= 0) { clearInterval(timer); alert(`⏰ 時間到！本局結算獲得金幣：${coins}`); selectDifficulty(gameDifficulty); }
+            }, 1000);
+        }
+
+        function getFilteredWords() {
+            if(gameDifficulty === "easy") return wordBank.filter(w => w.diff === "easy");
+            else if(gameDifficulty === "medium") return wordBank.filter(w => w.diff === "easy" || w.diff === "medium");
+            else return wordBank;
+        }
+
+        function generateOrders() {
+            const stage = document.getElementById('customer-stage');
+            stage.innerHTML = ""; activeOrders = [];
+            let pool = getFilteredWords();
+            
+            let count = 2;
+            if(gameDifficulty === "easy") count = Math.floor(Math.random() * 2) + 1;
+            else if(gameDifficulty === "medium") count = Math.floor(Math.random() * 3) + 1;
+            else if(gameDifficulty === "hard") count = Math.floor(Math.random() * 3) + 2;
+
+            for(let i = 0; i < count; i++) {
+                let animal = animals[i % animals.length];
+                let targetWord = pool[Math.floor(Math.random() * pool.length)];
+                let orderObj = { id: i, animal: animal, target: targetWord, maxTime: timeLeft };
+                activeOrders.push(orderObj);
+
+                let card = document.createElement('div');
+                card.className = "customer-card"; card.dataset.id = i;
+                card.ondragover = (e) => { e.preventDefault(); card.classList.add('drag-over'); };
+                card.ondragleave = () => card.classList.remove('drag-over');
+                card.ondrop = (e) => onCakeDrop(e, orderObj);
+
+                card.innerHTML = `
+                    <div class="thought-bubble">
+                        <div class="target-hanzi">${targetWord.word}</div>
+                        <div style="margin: 2px 0;">${renderCakeSVG(targetWord, false, 55)}</div>
+                        <div class="recipe-chips">
+                            <div class="recipe-chip">${symbolIcons[targetWord.ing]}</div>
+                            <div class="recipe-chip">${symbolIcons[targetWord.sauce]}</div>
+                            <div class="recipe-chip">${symbolIcons[targetWord.cream]}</div>
+                        </div>
+                    </div>
+                    <div class="animal-avatar">${animal.icon}</div>
+                `;
+                stage.appendChild(card);
+            }
+        }
+
+        function renderOvensUI() {
+            const container = document.getElementById('ovens-list');
+            container.innerHTML = "";
+            let currentBakeTime = 4 - ovenLevel;
+
+            for(let i = 0; i < ovenCount; i++) {
+                let ovenDiv = document.createElement('div');
+                ovenDiv.className = `oven-box ${ovenStates[i].isBaking ? 'baking' : ''}`;
+                ovenDiv.id = `oven-device-${i}`;
+                ovenDiv.innerHTML = `
+                    <div class="oven-door-window">🔥</div>
+                    <button class="btn-action" onclick="startBakingInOven(${i})">${ovenStates[i].isBaking ? '烘焙中...' : `烤箱 ${i+1} (${currentBakeTime}s)`}</button>
+                `;
+                container.appendChild(ovenDiv);
+            }
+        }
+
+        function renderCakeSVG(targetWord, isFailed = false, size = 65) {
+            if(isFailed) {
+                return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"><ellipse cx="50" cy="85" rx="42" ry="10" fill="#E0E0E0" /><path d="M 20 50 Q 50 40 80 50 L 75 80 Q 50 88 25 80 Z" fill="#3E2723" /><ellipse cx="50" cy="50" rx="30" ry="10" fill="#4E342E" /></svg>`;
+            }
+            let sauceColor = targetWord.sauce.includes("巧克力") ? "#795548" : (targetWord.sauce.includes("檸檬") ? "#FFF176" : (targetWord.sauce.includes("葡萄") ? "#BA68C8" : "#FF8BA7"));
+            let creamColor = targetWord.cream.includes("巧克力") ? "#5D4037" : (targetWord.cream.includes("檸檬") ? "#FFF59D" : (targetWord.cream.includes("香草") ? "#FFE0B2" : "#FFB7B2"));
+            return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"><ellipse cx="50" cy="85" rx="44" ry="10" fill="#ECEFF1"/><path d="M 22 55 Q 50 45 78 55 L 74 80 Q 50 88 26 80 Z" fill="#F57C00" /><path d="M 23 65 Q 50 58 77 65 L 76 70 Q 50 76 24 70 Z" fill="${sauceColor}" /><ellipse cx="50" cy="55" rx="28" ry="12" fill="${creamColor}" /></svg>`;
+        }
+
+        function openSelector(ingredientName, type) {
+            activeContext = { ingredient: ingredientName, type: type };
+            let correctAnswers = activeOrders.map(o => o.target[type]);
+            let count = gameDifficulty === "easy" ? 4 : 5;
+            let pool = allPinyin[type].filter(item => !correctAnswers.includes(item));
+            pool.sort(() => 0.5 - Math.random());
+            
+            let choices = [...new Set([...correctAnswers, ...pool.slice(0, count - correctAnswers.length)])];
+            choices.sort(() => 0.5 - Math.random());
+
+            document.getElementById('modal-title').innerText = `選擇【${ingredientName}】拼音`;
+            const grid = document.getElementById('modal-options'); grid.innerHTML = "";
+            choices.forEach(val => {
+                let btn = document.createElement('button');
+                btn.className = "btn-opt";
+                btn.innerText = val === "" ? "(無聲母)" : val;
+                btn.onclick = () => selectPinyin(val);
+                grid.appendChild(btn);
+            });
+            document.getElementById('pinyin-modal').style.display = "block";
+        }
+
+        function closeSelector() { document.getElementById('pinyin-modal').style.display = "none"; }
+
+        function selectPinyin(val) {
+            closeSelector();
+            if(activeContext.type === 'sh') {
+                currentCraft.ingredient = activeContext.ingredient;
+                currentCraft.sh = val;
+            } else if(activeContext.type === 'ym') {
+                currentCraft.sauce = activeContext.ingredient;
+                currentCraft.ym = val;
+            } else if(activeContext.type === 'sd') {
+                currentCraft.cream = activeContext.ingredient;
+                currentCraft.sd = val;
+            }
+            updateCraftUI();
+        }
+
+        function updateCraftUI() {
+            document.getElementById('slot-sh').innerText = currentCraft.sh !== null ? (currentCraft.sh === "" ? "無" : currentCraft.sh) : "-";
+            document.getElementById('slot-ym').innerText = currentCraft.ym || "-";
+            document.getElementById('slot-sd').innerText = currentCraft.sd || "-";
+            
+            let parts = [];
+            if(currentCraft.ingredient) parts.push(currentCraft.ingredient);
+            if(currentCraft.sauce) parts.push(currentCraft.sauce);
+            if(currentCraft.cream) parts.push(currentCraft.cream);
+            document.getElementById('lbl-craft-ingredient').innerText = parts.length > 0 ? parts.join("+") : "無";
+        }
+
+        function clearBowl() {
+            currentCraft = { ingredient: null, sauce: null, cream: null, sh: null, ym: null, sd: null };
+            document.getElementById('bake-hint-box').style.display = "none";
+            updateCraftUI();
+        }
+
+        function showDiagnosticHint(craftData) {
+            const hintBox = document.getElementById('bake-hint-box');
+            let matchedTarget = activeOrders.length > 0 ? activeOrders[0].target : null;
+
+            for(let order of activeOrders) {
+                let target = order.target;
+                if(craftData.ingredient === target.ing || craftData.sauce === target.sauce || craftData.cream === target.cream) {
+                    matchedTarget = target;
+                    break;
+                }
+            }
+            if(!matchedTarget) return;
+
+            let errors = [];
+            if(craftData.ingredient !== matchedTarget.ing) errors.push(`基底應為<b>【${matchedTarget.ing}】</b>`);
+            if(craftData.sauce !== matchedTarget.sauce) errors.push(`醬料應為<b>【${matchedTarget.sauce}】</b>`);
+            if(craftData.cream !== matchedTarget.cream) errors.push(`奶油應為<b>【${matchedTarget.cream}】</b>`);
+            
+            let targetSh = matchedTarget.sh === "" ? "(無聲母)" : matchedTarget.sh;
+            let currentSh = craftData.sh === "" ? "(無聲母)" : craftData.sh;
+            if(currentSh !== targetSh) errors.push(`聲母應為 <b>${targetSh}</b>`);
+            if(craftData.ym !== matchedTarget.ym) errors.push(`韻母應為 <b>${matchedTarget.ym}</b>`);
+            if(craftData.sd !== matchedTarget.sd) errors.push(`聲調應為 <b>${matchedTarget.sd}</b>`);
+
+            hintBox.innerHTML = `⚠️ <b>配方錯誤（參考「${matchedTarget.word}」）：</b><br>${errors.join('，')}`;
+            hintBox.style.display = "block";
+        }
+
+        function startBakingInOven(ovenIdx) {
+            if(ovenStates[ovenIdx].isBaking) return;
+            if(!currentCraft.ingredient || !currentCraft.sauce || !currentCraft.cream || currentCraft.sh === null || !currentCraft.ym || !currentCraft.sd) {
+                alert("🥣 請選擇完整食材與拼音部件！"); 
+                return;
+            }
+            
+            ovenStates[ovenIdx].isBaking = true;
+            renderOvensUI();
+            document.getElementById('bake-hint-box').style.display = "none";
+            let craftData = { ...currentCraft }; 
+            clearBowl();
+
+            let bakeTimeMs = (4 - ovenLevel) * 1000;
+            setTimeout(() => {
+                ovenStates[ovenIdx].isBaking = false; 
+                renderOvensUI();
+                
+                                let matches = wordBank.filter(w =>
+                    w.ing === craftData.ingredient && w.sauce === craftData.sauce &&
+                    w.cream === craftData.cream && w.sh === craftData.sh &&
+                    w.ym === craftData.ym && w.sd === craftData.sd
+                );
+
+                if(matches.length > 0) currentBakedCake = { isFailed: false, wordObj: matches[0], candidates: matches };
+                else {
+                    currentBakedCake = { isFailed: true, wordObj: null };
+                    showDiagnosticHint(craftData);
+                }
+
+                
+                updatePlateUI();
+            }, bakeTimeMs);
+        }
+
+        function updatePlateUI() {
+            const plate = document.getElementById('plate-content');
+            if(!currentBakedCake) plate.innerHTML = `<span style="font-size:1.8rem; opacity:0.3;">🎂</span>`;
+            else if(currentBakedCake.isFailed) plate.innerHTML = renderCakeSVG(null, true, 60);
+            else plate.innerHTML = renderCakeSVG(currentBakedCake.wordObj, false, 60);
+        }
+
+        function onCakeDragStart(e) {
+            if(!currentBakedCake) e.preventDefault();
+            else e.dataTransfer.setData("text/plain", "cake");
+        }
+
+        /* 📱 移動端 Touch 手指拖曳支援 */
+        let touchClone = null;
+        const plateEl = document.getElementById('plate-device');
+
+        plateEl.addEventListener('touchstart', (e) => {
+            if(!currentBakedCake) return;
+            const touch = e.touches[0];
+            touchClone = plateEl.cloneNode(true);
+            touchClone.classList.add('touch-drag-clone');
+            touchClone.style.left = touch.clientX + 'px';
+            touchClone.style.top = touch.clientY + 'px';
+            document.body.appendChild(touchClone);
+        }, { passive: true });
+
+        plateEl.addEventListener('touchmove', (e) => {
+            if (!touchClone) return;
+            const touch = e.touches[0];
+            touchClone.style.left = touch.clientX + 'px';
+            touchClone.style.top = touch.clientY + 'px';
+            e.preventDefault();
+        }, { passive: false });
+
+        plateEl.addEventListener('touchend', (e) => {
+            if (!touchClone) return;
+            const touch = e.changedTouches[0];
+            touchClone.remove();
+            touchClone = null;
+
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!dropTarget) return;
+
+            const customerCard = dropTarget.closest('.customer-card');
+            const trashBin = dropTarget.closest('#trash-bin');
+
+            if (customerCard) {
+                const orderId = parseInt(customerCard.dataset.id);
+                const orderObj = activeOrders.find(o => o.id === orderId);
+                if (orderObj) onCakeDrop(e, orderObj);
+            } else if (trashBin) {
+                onTrashDrop(e);
+            }
+        });
+
+        function onTrashOver(e) { e.preventDefault(); }
+        function onTrashLeave(e) {}
+        function onTrashDrop(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if(currentBakedCake) { currentBakedCake = null; updatePlateUI(); alert("🗑️ 已清理成品！"); }
+        }
+
+        function onCakeDrop(e, orderObj) {
+            if (e && e.preventDefault) e.preventDefault();
+            document.querySelectorAll('.customer-card').forEach(c => c.classList.remove('drag-over'));
+            if(!currentBakedCake) return;
+            if(currentBakedCake.isFailed) { alert("🌚 焦黑蛋糕顧客不喜歡！請清理掉。"); return; }
+            
+            const accepted = (currentBakedCake.candidates || [currentBakedCake.wordObj])
+                .some(w => w.word === orderObj.target.word);
+
+            if(accepted) {
+                let ratio = Math.max(0.2, timeLeft / orderObj.maxTime);
+                let reward = gameDifficulty === "easy" ? Math.round(5 + ratio * 5) : (gameDifficulty === "medium" ? Math.round(7 + ratio * 8) : Math.round(10 + ratio * 10));
+
+                // 獲得金幣並即時同步存檔
+                addCoins(reward);
+                alert(`✨ 出貨成功！獲得 ${reward} 金幣！`);
+
+                activeOrders = activeOrders.filter(o => o.id !== orderObj.id);
+                const cardEl = document.querySelector(`.customer-card[data-id="${orderObj.id}"]`);
+                if(cardEl) cardEl.remove();
+                currentBakedCake = null; updatePlateUI();
+                
+                if(activeOrders.length === 0) { 
+                    level++; 
+                    alert(`🎉 完成訂單！進入第 ${level} 關！`); 
+                    initLevel(); 
+                }
+            } else { alert("🤔 這不是顧客點的餐點喔！"); }
+        }
+
+        function openShop() { updateCoinsUI(); updateShopUI(); document.getElementById('shop-modal').style.display = "flex"; }
+        function closeShop() { document.getElementById('shop-modal').style.display = "none"; }
+
+        function updateShopUI() {
+            if(ovenLevel >= 3) {
+                document.getElementById('shop-oven-lv-text').innerText = "等級 3 (滿級: 1秒)";
+                document.getElementById('btn-upgrade-oven').disabled = true;
+                document.getElementById('btn-upgrade-oven').innerText = "已滿級";
+            } else {
+                document.getElementById('shop-oven-lv-text').innerText = `等級 ${ovenLevel} (時間: ${4-ovenLevel}秒)`;
+                document.getElementById('cost-oven-lv').innerText = ovenUpgradeCosts[ovenLevel];
+            }
+
+            if(ovenCount >= 3) {
+                document.getElementById('shop-oven-count-text').innerText = "目前烤箱: 3個 (上限)";
+                document.getElementById('btn-buy-oven').disabled = true;
+                document.getElementById('btn-buy-oven').innerText = "已上限";
+            } else {
+                document.getElementById('shop-oven-count-text').innerText = `目前烤箱: ${ovenCount}個`;
+                document.getElementById('cost-new-oven').innerText = newOvenCosts[ovenCount - 1];
+            }
+        }
+
+        function upgradeOvenSpeed() {
+            if(ovenLevel >= 3) return;
+            let cost = ovenUpgradeCosts[ovenLevel];
+            if(coins >= cost) {
+                deductCoins(cost);
+                ovenLevel++;
+                renderOvensUI(); updateShopUI();
+                alert(`🔥 烤箱升級至 Lv.${ovenLevel}！烘焙只需 ${4-ovenLevel} 秒！`);
+            } else alert("🪙 金幣不足喔！");
+        }
+
+        function buyNewOven() {
+            if(ovenCount >= 3) return;
+            let cost = newOvenCosts[ovenCount - 1];
+            if(coins >= cost) {
+                deductCoins(cost);
+                ovenCount++;
+                renderOvensUI(); updateShopUI();
+                alert(`✨ 成功購入第 ${ovenCount} 個烤箱！`);
+            } else alert("🪙 金幣不足喔！");
+        }
+    </script>
+</body>
+</html>
